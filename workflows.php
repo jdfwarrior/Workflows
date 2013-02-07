@@ -188,14 +188,13 @@ class Workflows {
 				elseif ( $key == 'arg' ):
 					$c->addAttribute( 'arg', $b[$key] );
 				elseif ( $key == 'valid' ):
-					$c->addAttribute( 'valid', $b[$key] );
+					if ( $b[$key] == 'yes' && $b[$key] == 'no' ):
+						$c->addAttribute( 'valid', $b[$key] );
+					endif;
 				elseif ( $key == 'autocomplete' ):
 					$c->addAttribute( 'autocomplete', $b[$key] );
 				else:
-					$value = htmlentities(
-								utf8_encode( $b[$key] )
-							);
-					$c->addChild( $key, $value );			// Add an element for it and set its value
+					$c->$key = $b[$key];
 				endif;
 			endforeach;
 		endforeach;
@@ -219,7 +218,6 @@ class Workflows {
 		endif;
 	}
 
-
 	/**
 	* Description:
 	* Save values to a specified plist. If the first parameter is an associative
@@ -236,22 +234,22 @@ class Workflows {
 	public function set( $a=null, $b=null, $c=null )
 	{
 		if ( is_array( $a ) ):
-			if ( file_exists( $b ) ):
-				$b = $this->path."/".$b;
-			elseif ( file_exists( $this->data."/".$b ) ):
+			if ( file_exists( $this->data."/".$b ) ):
 				$b = $this->data."/".$b;
 			elseif ( file_exists( $this->cache."/".$b ) ):
 				$b = $this->cache."/".$b;
+			elseif ( file_exists( $this->path."/".$b ) ):
+				$b = $this->path."/".$b;
 			else:
 				$b = $this->data."/".$b;
 			endif;
 		else:
-			if ( file_exists( $c ) ):
-				$c = $this->path."/".$c;
-			elseif ( file_exists( $this->data."/".$c ) ):
+			if ( file_exists( $this->data."/".$c ) ):
 				$c = $this->data."/".$c;
 			elseif ( file_exists( $this->cache."/".$c ) ):
 				$c = $this->cache."/".$c;
+			elseif ( file_exists( $this->path."/".$b ) ):
+				$b = $this->path."/".$b;
 			else:
 				$c = $this->data."/".$c;
 			endif;
@@ -276,12 +274,12 @@ class Workflows {
 	*/
 	public function get( $a, $b ) {
 
-		if ( file_exists( $b ) ):
-			$b = $this->path."/".$b;
-		elseif ( file_exists( $this->data."/".$b ) ):
+		if ( file_exists( $this->data."/".$b ) ):
 			$b = $this->data."/".$b;
 		elseif ( file_exists( $this->cache."/".$b ) ):
 			$b = $this->cache."/".$b;
+		elseif ( file_exists( $this->path."/".$b ) ):
+			$b = $this->path."/".$b;
 		else:
 			return false;
 		endif;
@@ -361,12 +359,12 @@ class Workflows {
 	*/
 	public function write( $a, $b )
 	{
-		if ( file_exists( $b ) ):
-			$b = $this->path."/".$b;
-		elseif ( file_exists( $this->data."/".$b ) ):
+		if ( file_exists( $this->data."/".$b ) ):
 			$b = $this->data."/".$b;
 		elseif ( file_exists( $this->cache."/".$b ) ):
 			$b = $this->cache."/".$b;
+		elseif ( file_exists( $this->path."/".$b ) ):
+			$b = $this->path."/".$b;
 		else:
 			$b = $this->data."/".$b;
 		endif;
@@ -393,12 +391,12 @@ class Workflows {
 	*/
 	public function read( $a )
 	{
-		if ( file_exists( $a ) ):
-			$a = $this->path."/".$a;
-		elseif ( file_exists( $this->data."/".$a ) ):
+		if ( file_exists( $this->data."/".$a ) ):
 			$a = $this->data."/".$a;
 		elseif ( file_exists( $this->cache."/".$a ) ):
 			$a = $this->cache."/".$a;
+		elseif ( file_exists( $this->path."/".$b ) ):
+			$b = $this->path."/".$b;
 		else:
 			return false;
 		endif;
@@ -444,283 +442,6 @@ class Workflows {
 		array_push( $this->results, $temp );
 
 		return $temp;
-	}
-
-}
-
-
-/**
-* LocalDB class is an extension of SQLite3. There are several shortcut functions
-* created just to make interaction with the databse a little simpler and faster.
-*/
-class LocalDB extends SQLite3 {
-
-	private $select = '*';
-	private $where = '1';
-	private $from = null;
-	private $cache;
-	private $data;
-	private $bundle;
-	private $path;
-	private $home;
-
-	/**
-	* Description:
-	* Class constructor. Accepts a database name as an argument, if one
-	* isn't specified, it falls back to database.db, and opens that database.
-	*
-	* @param $q - name of the database to create or connect to
-	*/
-	function __construct( $a = "database.db" )
-	{
-		$workflows = new Workflows();
-
-		$this->path 	= $workflows->path();
-		$this->home 	= $workflows->home();
-		$this->bundle 	= $workflows->bundle();
-		$this->cache 	= $workflows->cache();
-		$this->data 	= $workflows->data();
-
-		if ( file_exists( $a ) ):
-			$a = $this->path."/".$a;
-		elseif ( file_exists( $this->data."/".$a ) ):
-			$a = $this->data."/".$a;
-		elseif ( file_exists( $this->cache."/".$a ) ):
-			$a = $this->cache."/".$a;
-		else:
-			$a = $this->data."/".$a;
-		endif;
-
-		$this->open( $a );
-	}
-
-	/**
-	* Description:
-	* Select function allows you to set the fields that are selected/returned
-	* when performing an SQL query
-	*
-	* @param $select - the fields to be selected
-	*/
-	public function select( $select )
-	{
-		if ( is_array( $select ) ):
-			$this->select = implode( ",", $select );
-		elseif ( is_string( $select ) ):
-			$this->select = $select;
-		else:
-			return false;
-		endif;
-
-		return $this;
-	}
-
-	/**
-	* Description:
-	* Set the table to perform action on
-	*
-	* @param $from - The table to perform the action on
-	*/
-	public function from( $from )
-	{
-		if ( is_array( $from ) ):
-			$this->from = implode( ",", $from );
-		elseif ( is_string( $from ) ):
-			$this->from = $from;
-		else:
-			return false;
-		endif;
-
-		return $this;
-	}
-
-	/**
-	* Description:
-	* Set the WHERE clause for the SQL statement to refine which
-	* fields are acted upon
-	*
-	* @param $where - the where clause to refine which records to act on
-	*/
-	public function where( $where )
-	{
-		if ( is_string( $where) ):
-			$this->where = $where;
-		else:
-			return false;
-		endif;
-
-		return $this;
-	}
-
-	/**
-	* Description:
-	* Add an additional AND WHERE clauses to the current
-	*
-	* @param $where - the where clause
-	*/
-	public function and_where( $where )
-	{
-		if ( is_string( $where) ):
-			if ( $this->where == 1 ):
-				$this->where = $where;
-			else:
-				$this->where .= " AND ". $where;
-			endif;
-		else:
-			return false;
-		endif;
-
-		return $this;
-	}
-
-	/**
-	* Description:
-	* Add an additional OR WHERE clause to the current query
-	*
-	* @param $where - the WHERE clause
-	*/
-	public function or_where( $where )
-	{
-		if ( is_string( $where) ):
-			if ( $this->where == 1 ):
-				$this->where = $where;
-			else:
-				$this->where .= " OR ". $where;
-			endif;
-		else:
-			return false;
-		endif;
-
-		return $this;
-	}
-
-	public function like( $like )
-	{
-		if ( is_string( $where) ):
-			$this->where = 'LIKE "%'.$where.'%"';
-		else:
-			return false;
-		endif;
-
-		return $this;
-	}
-
-	/**
-	* Description:
-	* Add an additional AND WHERE LIKE clauses to the current
-	*
-	* @param $like - the WHERE LIKE clause
-	*/
-	public function and_like( $like )
-	{
-		if ( is_string( $like ) ):
-			if ( $this->where == 1 ):
-				$this->where = 'LIKE "%'.$like.'%"';
-			else:
-				$this->where .= ' AND LIKE "%'.$like.'%"';
-			endif;
-		else:
-			return false;
-		endif;
-
-		return $this;
-	}
-
-	/**
-	* Description:
-	* Add an additional OR WHERE LIKE clause to the current query
-	*
-	* @param $where - the WHERE LIKE clause
-	*/
-	public function or_like( $where )
-	{
-		if ( is_string( $like ) ):
-			if ( $this->where == 1 ):
-				$this->where = 'LIKE "%'.$like.'%"';
-			else:
-				$this->where .= ' OR LIKE "%'.$like.'%"';
-			endif;
-		else:
-			return false;
-		endif;
-
-		return $this;
-	}
-
-	public function get( $table=null )
-	{
-		if ( is_string( $table ) || ( is_null( $table ) && !is_null( $this->from ) ) ):
-			if ( !is_null( $table ) ):
-				$this->from = $table;
-			endif;
-			$query = "SELECT ".$this->select." FROM ".$this->from." WHERE ".$this->where;
-			$results = $this->query( $query );
-			$return = array();
-
-			while( $result = $results->fetchArray( SQLITE3_ASSOC ) ):
-				array_push( $return, $result );
-			endwhile;
-
-			return json_decode( json_encode( $return ) );
-		else:
-			return false;
-		endif;
-	}
-
-	public function delete( $table=null )
-	{
-		if ( is_string( $table ) || ( is_null( $table ) && !is_null( $this->from ) ) ):
-			if ( !is_null( $table ) ):
-				$this->from = $table;
-				$query = "DELETE FROM ".$this->from." WHERE ".$this->where;
-				$results = $this->query( $query );
-			endif;
-		else:
-			return false;
-		endif;
-	}
-
-	public function insert( $table, $values )
-	{
-		if ( is_array( $values ) ):
-			$values_string = "";
-			foreach( $values as $value ):
-				$values_string .= "'".addslashes( $value )."',";
-			endforeach;
-			$values_string = substr_replace( $values_string, '', -1);
-			$this->exec( 'INSERT INTO '.$table.' VALUES ( '.$values_string.' )' );
-		else:
-			return false;
-		endif;
-	}
-
-	public function create_table( $table, $fields )
-	{
-		if ( is_array( $fields ) ):
-			$fields = implode( ',', $fields );
-			$this->exec( 'CREATE TABLE IF NOT EXISTS '.$table.' ( '.$fields.' )' );
-		else:
-			return false;
-		endif;
-	}
-
-	public function q()
-	{
-		echo "SELECT ".$this->select." FROM ".$this->from." WHERE ".$this->where;
-	}
-
-	public function drop_table( $table )
-	{
-		$this->exec( 'drop table if exists '.$table );
-	}
-
-	public function truncate( $table )
-	{
-		$this->exec( 'delete from '.$table );
-	}
-
-	function __destruct()
-	{
-		$this->close();
 	}
 
 }
