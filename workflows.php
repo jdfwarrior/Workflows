@@ -4,8 +4,8 @@
 * Description: 	This PHP class object provides several useful functions for retrieving, parsing,
 * 				and formatting data to be used with Alfred 2 Workflows.
 * Author: 		David Ferguson (@jdfwarrior)
-* Revised: 		1/24/2013
-* Version:		0.1
+* Revised: 		2/9/2013
+* Version:		0.2
 */
 class Workflows {
 
@@ -187,12 +187,26 @@ class Workflows {
 					$c->addAttribute( 'uid', $b[$key] );
 				elseif ( $key == 'arg' ):
 					$c->addAttribute( 'arg', $b[$key] );
+				elseif ( $key == 'type' ):
+					$c->addAttribute( 'type', $b[$key] );
 				elseif ( $key == 'valid' ):
 					if ( $b[$key] == 'yes' && $b[$key] == 'no' ):
 						$c->addAttribute( 'valid', $b[$key] );
 					endif;
 				elseif ( $key == 'autocomplete' ):
 					$c->addAttribute( 'autocomplete', $b[$key] );
+				elseif ( $key == 'icon' ):
+					if ( substr( $b[$key], 0, 9 ) == 'fileicon:' ):
+						$val = substr( $b[$key], 9 );
+						$c->$key = $val;
+						$c->$key->addAttribute( 'type', 'fileicon' );
+					elseif ( substr( $b[$key], 0, 9 ) == 'filetype:' ):
+						$val = substr( $b[$key], 9 );
+						$c->$key = $val;
+						$c->$key->addAttribute( 'type', 'filetype' );
+					else:
+						$c->$key = $b[$key];
+					endif;
 				else:
 					$c->$key = $b[$key];
 				endif;
@@ -234,22 +248,22 @@ class Workflows {
 	public function set( $a=null, $b=null, $c=null )
 	{
 		if ( is_array( $a ) ):
-			if ( file_exists( $this->data."/".$b ) ):
+			if ( file_exists( $b ) ):
+				$b = $this->path."/".$b;
+			elseif ( file_exists( $this->data."/".$b ) ):
 				$b = $this->data."/".$b;
 			elseif ( file_exists( $this->cache."/".$b ) ):
 				$b = $this->cache."/".$b;
-			elseif ( file_exists( $this->path."/".$b ) ):
-				$b = $this->path."/".$b;
 			else:
 				$b = $this->data."/".$b;
 			endif;
 		else:
-			if ( file_exists( $this->data."/".$c ) ):
+			if ( file_exists( $c ) ):
+				$c = $this->path."/".$c;
+			elseif ( file_exists( $this->data."/".$c ) ):
 				$c = $this->data."/".$c;
 			elseif ( file_exists( $this->cache."/".$c ) ):
 				$c = $this->cache."/".$c;
-			elseif ( file_exists( $this->path."/".$b ) ):
-				$b = $this->path."/".$b;
 			else:
 				$c = $this->data."/".$c;
 			endif;
@@ -274,12 +288,12 @@ class Workflows {
 	*/
 	public function get( $a, $b ) {
 
-		if ( file_exists( $this->data."/".$b ) ):
+		if ( file_exists( $b ) ):
+			$b = $this->path."/".$b;
+		elseif ( file_exists( $this->data."/".$b ) ):
 			$b = $this->data."/".$b;
 		elseif ( file_exists( $this->cache."/".$b ) ):
 			$b = $this->cache."/".$b;
-		elseif ( file_exists( $this->path."/".$b ) ):
-			$b = $this->path."/".$b;
 		else:
 			return false;
 		endif;
@@ -359,12 +373,12 @@ class Workflows {
 	*/
 	public function write( $a, $b )
 	{
-		if ( file_exists( $this->data."/".$b ) ):
+		if ( file_exists( $b ) ):
+			$b = $this->path."/".$b;
+		elseif ( file_exists( $this->data."/".$b ) ):
 			$b = $this->data."/".$b;
 		elseif ( file_exists( $this->cache."/".$b ) ):
 			$b = $this->cache."/".$b;
-		elseif ( file_exists( $this->path."/".$b ) ):
-			$b = $this->path."/".$b;
 		else:
 			$b = $this->data."/".$b;
 		endif;
@@ -391,12 +405,12 @@ class Workflows {
 	*/
 	public function read( $a )
 	{
-		if ( file_exists( $this->data."/".$a ) ):
+		if ( file_exists( $a ) ):
+			$a = $this->path."/".$a;
+		elseif ( file_exists( $this->data."/".$a ) ):
 			$a = $this->data."/".$a;
 		elseif ( file_exists( $this->cache."/".$a ) ):
 			$a = $this->cache."/".$a;
-		elseif ( file_exists( $this->path."/".$b ) ):
-			$b = $this->path."/".$b;
 		else:
 			return false;
 		endif;
@@ -423,7 +437,7 @@ class Workflows {
 	* @param $auto - the autocomplete value for the result item
 	* @return array - array item to be passed back to Alfred
 	*/
-	public function result( $uid, $arg, $title, $sub, $icon, $valid='yes', $auto=null )
+	public function result( $uid, $arg, $title, $sub, $icon, $valid='yes', $auto=null, $type=null )
 	{
 		if ( is_null( $auto ) ):
 			$auto = $title;
@@ -436,8 +450,13 @@ class Workflows {
 			'subtitle' => $sub,
 			'icon' => $icon,
 			'valid' => $valid,
-			'autocomplete' => $auto
+			'autocomplete' => $auto,
+			'type' => $type
 		);
+
+		if ( is_null( $type ) ):
+			unset( $temp['type'] );
+		endif;
 
 		array_push( $this->results, $temp );
 
