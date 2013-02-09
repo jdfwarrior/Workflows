@@ -1,3 +1,3 @@
 #Workflows Utility Class
 
-See [http://dferg.us/workflows-class](dferg.us) for full class documentation.
+See [dferg.us](http://dferg.us/workflows-class) for full class documentation.
