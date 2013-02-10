@@ -190,7 +190,7 @@ class Workflows {
 				elseif ( $key == 'type' ):
 					$c->addAttribute( 'type', $b[$key] );
 				elseif ( $key == 'valid' ):
-					if ( $b[$key] == 'yes' && $b[$key] == 'no' ):
+					if ( $b[$key] == 'yes' || $b[$key] == 'no' ):
 						$c->addAttribute( 'valid', $b[$key] );
 					endif;
 				elseif ( $key == 'autocomplete' ):
@@ -439,10 +439,6 @@ class Workflows {
 	*/
 	public function result( $uid, $arg, $title, $sub, $icon, $valid='yes', $auto=null, $type=null )
 	{
-		if ( is_null( $auto ) ):
-			$auto = $title;
-		endif;
-
 		$temp = array(
 			'uid' => $uid,
 			'arg' => $arg,
