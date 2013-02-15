@@ -5,7 +5,7 @@
 * 				and formatting data to be used with Alfred 2 Workflows.
 * Author: 		David Ferguson (@jdfwarrior)
 * Revised: 		2/9/2013
-* Version:		0.2
+* Version:		0.3
 */
 class Workflows {
 
@@ -249,7 +249,10 @@ class Workflows {
 	{
 		if ( is_array( $a ) ):
 			if ( file_exists( $b ) ):
+				$temp = $this->path.'/'.$b;
+			if ( $b == $temp ):
 				$b = $this->path."/".$b;
+			endif;
 			elseif ( file_exists( $this->data."/".$b ) ):
 				$b = $this->data."/".$b;
 			elseif ( file_exists( $this->cache."/".$b ) ):
@@ -259,7 +262,10 @@ class Workflows {
 			endif;
 		else:
 			if ( file_exists( $c ) ):
-				$c = $this->path."/".$c;
+				$temp = $this->path.'/'.$c;
+				if ( $c == $temp ):
+					$c = $this->path."/".$c;
+				endif;
 			elseif ( file_exists( $this->data."/".$c ) ):
 				$c = $this->data."/".$c;
 			elseif ( file_exists( $this->cache."/".$c ) ):
@@ -289,7 +295,10 @@ class Workflows {
 	public function get( $a, $b ) {
 
 		if ( file_exists( $b ) ):
-			$b = $this->path."/".$b;
+			$temp = $this->path.'/'.$b;
+			if ( $b == $temp ):
+				$b = $this->path."/".$b;
+			endif;
 		elseif ( file_exists( $this->data."/".$b ) ):
 			$b = $this->data."/".$b;
 		elseif ( file_exists( $this->cache."/".$b ) ):
@@ -374,7 +383,10 @@ class Workflows {
 	public function write( $a, $b )
 	{
 		if ( file_exists( $b ) ):
-			$b = $this->path."/".$b;
+			$temp = $this->path.'/'.$b;
+			if ( $b == $temp ):
+				$b = $this->path."/".$b;
+			endif;
 		elseif ( file_exists( $this->data."/".$b ) ):
 			$b = $this->data."/".$b;
 		elseif ( file_exists( $this->cache."/".$b ) ):
@@ -406,7 +418,10 @@ class Workflows {
 	public function read( $a )
 	{
 		if ( file_exists( $a ) ):
-			$a = $this->path."/".$a;
+			$temp = $path.'/'.$a;
+			if ( $a === $temp ):
+				$a = $this->path."/".$a;
+			endif;
 		elseif ( file_exists( $this->data."/".$a ) ):
 			$a = $this->data."/".$a;
 		elseif ( file_exists( $this->cache."/".$a ) ):
