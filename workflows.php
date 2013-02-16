@@ -468,5 +468,15 @@ class Workflows {
 
 		return $temp;
 	}
-
+	
+	public function internet()
+	{
+		$internet = @fsockopen("www.google.com",80);
+		if($internet):
+			fclose($internet);
+			return true;
+		else:
+			return false;
+		endif;
+	}
 }
