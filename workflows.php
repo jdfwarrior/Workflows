@@ -15,6 +15,8 @@ class Workflows {
 	private $path;
 	private $home;
 	private $results;
+	private $sortfield;
+	private $sortascending;
 
 	/**
 	* Description:
@@ -478,6 +480,45 @@ class Workflows {
 		array_push( $this->results, $temp );
 
 		return $temp;
+	}
+
+	/**
+	* Description:
+	* Helper function that sorts the results by given field and sort direction.
+	* Possible fields: uid, arg, title, subtitle, icon, valid, autocomplete, type
+	*
+	* @param $field - the field that will be used to sort the current array of results, defaults to 'title'
+	* @param $ascending - sort direction, defaults to true
+	* @return array - sorted array or false in case the given field is not allowed
+	*/
+	public function sortresults( $field='title', $ascending=true )
+	{		
+		// abort in case the field is not allowed
+		$allowed = array("uid", "arg", "title", "subtitle", "icon", "valid", "autocomplete", "type");
+		if (!in_array($field, $allowed)):
+			return false;
+		endif;
+		
+		$this->sortfield = $field;
+		$this->sortascending = $ascending;
+		uasort($this->results, function ($a, $b) {
+			$c = $a[$this->sortfield];
+			$d = $b[$this->sortfield];
+			
+			if ( $c === $d ) {
+				return 0;
+			}
+			if ($this->sortascending) {
+				return ($c > $d) ? 1 : -1;
+			} else {
+				return ($c > $d) ? -1 : 1;
+			}
+		});
+		
+		unset($this->sortfield);
+		unset($this->sortascending);
+
+		return $this->results;
 	}
 
 }
