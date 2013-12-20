@@ -315,7 +315,7 @@ class Workflows {
 
 		exec( 'defaults read "'. $b .'" '.$a, $out );	// Execute system call to read plist value
 
-		if ( $out == "" ):
+		if ( empty( $out ) ):
 			return false;
 		endif;
 
