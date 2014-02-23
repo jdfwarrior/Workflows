@@ -15,6 +15,8 @@ class Workflows {
 	private $path;
 	private $home;
 	private $results;
+	private $sortfield;
+	private $sortascending;
 
 	/**
 	* Description:
@@ -384,9 +386,10 @@ class Workflows {
 	*
 	* @param array - data to save to file
 	* @param file - filename to write the cache data to
+	* @param flags - file flags used for 'file_put_contents'
 	* @return none
 	*/
-	public function write( $a, $b )
+	public function write( $a, $b, $flags = 0 )
 	{
 		if ( file_exists( $b ) ):
 			if ( file_exists( $this->path.'/'.$b ) ):
@@ -402,10 +405,10 @@ class Workflows {
 
 		if ( is_array( $a ) ):
 			$a = json_encode( $a );
-			file_put_contents( $b, $a );
+			file_put_contents( $b, $a, $flags );
 			return true;
 		elseif ( is_string( $a ) ):
-			file_put_contents( $b, $a );
+			file_put_contents( $b, $a, $flags );
 			return true;
 		else:
 			return false;
@@ -478,6 +481,45 @@ class Workflows {
 		array_push( $this->results, $temp );
 
 		return $temp;
+	}
+
+	/**
+	* Description:
+	* Helper function that sorts the results by given field and sort direction.
+	* Possible fields: uid, arg, title, subtitle, icon, valid, autocomplete, type
+	*
+	* @param $field - the field that will be used to sort the current array of results, defaults to 'title'
+	* @param $ascending - sort direction, defaults to true
+	* @return array - sorted array or false in case the given field is not allowed
+	*/
+	public function sortresults( $field='title', $ascending=true )
+	{		
+		// abort in case the field is not allowed
+		$allowed = array("uid", "arg", "title", "subtitle", "icon", "valid", "autocomplete", "type");
+		if (!in_array($field, $allowed)):
+			return false;
+		endif;
+		
+		$this->sortfield = $field;
+		$this->sortascending = $ascending;
+		uasort($this->results, function ($a, $b) {
+			$c = $a[$this->sortfield];
+			$d = $b[$this->sortfield];
+			
+			if ( $c === $d ) {
+				return 0;
+			}
+			if ($this->sortascending) {
+				return ($c > $d) ? 1 : -1;
+			} else {
+				return ($c > $d) ? -1 : 1;
+			}
+		});
+		
+		unset($this->sortfield);
+		unset($this->sortascending);
+
+		return $this->results;
 	}
 
 }
