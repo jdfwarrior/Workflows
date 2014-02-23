@@ -386,9 +386,10 @@ class Workflows {
 	*
 	* @param array - data to save to file
 	* @param file - filename to write the cache data to
+	* @param flags - file flags used for 'file_put_contents'
 	* @return none
 	*/
-	public function write( $a, $b )
+	public function write( $a, $b, $flags = 0 )
 	{
 		if ( file_exists( $b ) ):
 			if ( file_exists( $this->path.'/'.$b ) ):
@@ -404,10 +405,10 @@ class Workflows {
 
 		if ( is_array( $a ) ):
 			$a = json_encode( $a );
-			file_put_contents( $b, $a );
+			file_put_contents( $b, $a, $flags );
 			return true;
 		elseif ( is_string( $a ) ):
-			file_put_contents( $b, $a );
+			file_put_contents( $b, $a, $flags );
 			return true;
 		else:
 			return false;
