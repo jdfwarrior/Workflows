@@ -29,6 +29,8 @@ class Workflows {
 	{
 		$this->path = exec('pwd');
 		$this->home = exec('printf $HOME');
+		var_dump($this);
+		var_dump(file_exists('info.plist'));
 
 		if ( file_exists( 'info.plist' ) ):
 			$this->bundle = $this->get( 'bundleid', 'info.plist' );
@@ -179,7 +181,7 @@ class Workflows {
 
 		$items = new SimpleXMLElement("<items></items>"); 	// Create new XML element
 
-		foreach( $a as $b ):								// Lop through each object in the array
+		foreach( $a as $b ):								// Loop through each object in the array
 			$c = $items->addChild( 'item' );				// Add a new 'item' element for each object
 			$c_keys = array_keys( $b );						// Grab all the keys for that item
 			foreach( $c_keys as $key ):						// For each of those keys
@@ -207,6 +209,18 @@ class Workflows {
 					else:
 						$c->$key = $b[$key];
 					endif;
+        elseif ( $key == 'subtitle' ):
+          if ( gettype($b[$key]) == 'array' ):
+            $subtitle_types = ['shift', 'fn', 'ctrl', 'alt', 'cmd'];
+            $subtitles = $b[$key];
+            $subtitle_keys = array_keys( $subtitles );
+            foreach( $subtitle_keys as $subtitle_key ):
+              $c->$key = $subtitle[$subtitle_key];
+              if ( in_array( $subtitle_key, $subtitle_types ) ):
+                $c->$key->addAttrubite( 'mod', $subtitle_key );
+              endif;
+            endforeach;
+          endif;
 				else:
 					$c->$key = $b[$key];
 				endif;
@@ -303,14 +317,17 @@ class Workflows {
 		else:
 			return false;
 		endif;
+		var_dump($b);
 
-		exec( 'defaults read "'. $b .'" '.$a, $out );	// Execute system call to read plist value
+		$out = `defaults read "$b" $a`;	// Execute system call to read plist value
 
 		if ( $out == "" ):
 			return false;
 		endif;
 
-		$out = $out[0];
+		var_dump($out);
+		$out = trim($out);
+		var_dump($out);
 		return $out;											// Return item value
 	}
 
@@ -480,3 +497,4 @@ class Workflows {
 		endif;
 	}
 }
+$w = new Workflows();
