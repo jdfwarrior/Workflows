@@ -208,12 +208,13 @@ class Workflows {
 						$c->$key = $b[$key];
 					endif;
         elseif ( $key == 'subtitle' ):
-          if ( gettype($b[$key]) == 'array' ):            
+          if ( gettype( $b[$key] ) == 'array' ):            
             $subtitle_types = ['shift', 'fn', 'ctrl', 'alt', 'cmd'];
             $subtitles = $b[$key];
             $subtitle_keys = array_keys( $subtitles );
+            
             foreach( $subtitle_keys as $subtitle_key ):
-              $subtitle_element = $c->addChild( 'subtitle', $subtitles[$subtitle_key]);
+              $subtitle_element = $c->addChild( 'subtitle', $subtitles[$subtitle_key] );
               if ( in_array( $subtitle_key, $subtitle_types, true ) ):
                 $subtitle_element->addAttribute( 'mod', $subtitle_key );
               endif;
@@ -221,6 +222,16 @@ class Workflows {
           else:
             $c->$key = $b[$key];
           endif;
+        elseif ( $key == 'text' && gettype($b[$key]) == 'array' ):
+          $text_types = ['copy', 'largetype'];
+          $texts = $b[$key];
+          $text_keys = array_keys( $texts );
+          
+          foreach( $text_keys as $text_key ):
+            if ( in_array( $text_key, $text_types ) ):
+              $c->addChild( 'text', $texts[$text_key] )->addAttribute( 'type', $text_key );
+            endif;
+          endforeach;
 				else:
 					$c->$key = $b[$key];
 				endif;
@@ -455,13 +466,14 @@ class Workflows {
 	* @param $uid - the uid of the result, should be unique
 	* @param $arg - the argument that will be passed on
 	* @param $title - The title of the result item
-	* @param $sub - The subtitle text for the result item
+	* @param $sub - The subtitle text for the result item; can be an array of mod values or a string
 	* @param $icon - the icon to use for the result item
 	* @param $valid - sets whether the result item can be actioned
+  * @param $text - array with keys 'copy' and/or 'largetype' and their respective string values
 	* @param $auto - the autocomplete value for the result item
 	* @return array - array item to be passed back to Alfred
 	*/
-	public function result( $uid, $arg, $title, $sub, $icon, $valid='yes', $auto=null, $type=null )
+	public function result( $uid, $arg, $title, $sub, $icon, $valid='yes', $text=null, $auto=null, $type=null )
 	{
 		$temp = array(
 			'uid' => $uid,
@@ -470,10 +482,11 @@ class Workflows {
 			'subtitle' => $sub,
 			'icon' => $icon,
 			'valid' => $valid,
+      'text' => $text,
 			'autocomplete' => $auto,
 			'type' => $type
 		);
-
+    
 		if ( is_null( $type ) ):
 			unset( $temp['type'] );
 		endif;
