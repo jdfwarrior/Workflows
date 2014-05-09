@@ -29,8 +29,6 @@ class Workflows {
 	{
 		$this->path = exec('pwd');
 		$this->home = exec('printf $HOME');
-		var_dump($this);
-		var_dump(file_exists('info.plist'));
 
 		if ( file_exists( 'info.plist' ) ):
 			$this->bundle = $this->get( 'bundleid', 'info.plist' );
@@ -188,7 +186,7 @@ class Workflows {
 				if ( $key == 'uid' ):
 					$c->addAttribute( 'uid', $b[$key] );
 				elseif ( $key == 'arg' ):
-					$c->addAttribute( 'arg', $b[$key] );
+          $c->addChild( 'arg', $b[$key]);
 				elseif ( $key == 'type' ):
 					$c->addAttribute( 'type', $b[$key] );
 				elseif ( $key == 'valid' ):
@@ -210,16 +208,18 @@ class Workflows {
 						$c->$key = $b[$key];
 					endif;
         elseif ( $key == 'subtitle' ):
-          if ( gettype($b[$key]) == 'array' ):
+          if ( gettype($b[$key]) == 'array' ):            
             $subtitle_types = ['shift', 'fn', 'ctrl', 'alt', 'cmd'];
             $subtitles = $b[$key];
             $subtitle_keys = array_keys( $subtitles );
             foreach( $subtitle_keys as $subtitle_key ):
-              $c->$key = $subtitle[$subtitle_key];
-              if ( in_array( $subtitle_key, $subtitle_types ) ):
-                $c->$key->addAttrubite( 'mod', $subtitle_key );
+              $subtitle_element = $c->addChild( 'subtitle', $subtitles[$subtitle_key]);
+              if ( in_array( $subtitle_key, $subtitle_types, true ) ):
+                $subtitle_element->addAttribute( 'mod', $subtitle_key );
               endif;
             endforeach;
+          else:
+            $c->$key = $b[$key];
           endif;
 				else:
 					$c->$key = $b[$key];
@@ -317,7 +317,6 @@ class Workflows {
 		else:
 			return false;
 		endif;
-		var_dump($b);
 
 		$out = `defaults read "$b" $a`;	// Execute system call to read plist value
 
@@ -325,9 +324,7 @@ class Workflows {
 			return false;
 		endif;
 
-		var_dump($out);
 		$out = trim($out);
-		var_dump($out);
 		return $out;											// Return item value
 	}
 
@@ -497,4 +494,3 @@ class Workflows {
 		endif;
 	}
 }
-$w = new Workflows();
