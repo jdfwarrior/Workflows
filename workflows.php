@@ -4,8 +4,8 @@
 * Description: 	This PHP class object provides several useful functions for retrieving, parsing,
 * 				and formatting data to be used with Alfred 2 Workflows.
 * Author: 		David Ferguson (@jdfwarrior)
-* Revised: 		6/6/2013
-* Version:		0.3.3
+* Revised: 		6/19/2014
+* Version:		0.3.4
 */
 class Workflows {
 
@@ -177,7 +177,7 @@ class Workflows {
 			return false;
 		endif;
 
-		$items = new SimpleXMLElement("<items></items>"); 	// Create new XML element
+		$items = new SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><items></items>'); // Create new XML element
 
 		foreach( $a as $b ):								// Lop through each object in the array
 			$c = $items->addChild( 'item' );				// Add a new 'item' element for each object
