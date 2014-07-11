@@ -5,7 +5,7 @@
 * 				and formatting data to be used with Alfred 2 Workflows.
 * Author: 		David Ferguson (@jdfwarrior)
 * Revised: 		6/6/2013
-* Version:		0.3.3
+* Version:		0.3.4
 */
 class Workflows {
 
@@ -27,17 +27,17 @@ class Workflows {
 	*/
 	function __construct( $bundleid=null )
 	{
-		$this->path = exec('pwd');
-		$this->home = exec('printf "$HOME"');
-
-		if ( file_exists( 'info.plist' ) ):
-			$this->bundle = $this->get( 'bundleid', 'info.plist' );
-		endif;
+		$this->home = getenv("HOME");
 
 		if ( !is_null( $bundleid ) ):
 			$this->bundle = $bundleid;
+		else:
+			if ( file_exists( 'info.plist' ) ):
+				$this->path();
+				$this->bundle = $this->get( 'bundleid', 'info.plist' );
+			endif;
 		endif;
-
+		
 		$this->cache = $this->home. "/Library/Caches/com.runningwithcrayons.Alfred-2/Workflow Data/".$this->bundle;
 		$this->data  = $this->home. "/Library/Application Support/Alfred 2/Workflow Data/".$this->bundle;
 
@@ -122,10 +122,10 @@ class Workflows {
 	public function path()
 	{
 		if ( is_null( $this->path ) ):
-			return false;
-		else:
-			return $this->path;
+			$this->path = getenv("PWD");
 		endif;
+		
+		return $this->path;
 	}
 
 	/**
