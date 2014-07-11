@@ -122,7 +122,7 @@ class Workflows {
 	public function path()
 	{
 		if ( is_null( $this->path ) ):
-			$this->path = exec('pwd');
+			$this->path = getenv("PWD");
 		endif;
 		
 		return $this->path;
