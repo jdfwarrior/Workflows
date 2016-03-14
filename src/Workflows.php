@@ -13,12 +13,35 @@ namespace AlfredApp;
 class Workflows
 {
 
+    /**
+     * @var string
+     */
     private $cache;
+
+    /**
+     * @var string
+     */
     private $data;
+
+    /**
+     * @var null|string
+     */
     private $bundle;
+
+    /**
+     * @var string
+     */
     private $path;
+
+    /**
+     * @var string
+     */
     private $home;
-    private $results;
+
+    /**
+     * @var array
+     */
+    private $results = [];
 
     /**
      * Description:
@@ -60,7 +83,6 @@ class Workflows
      * Accepts no parameter and returns the value of the bundle id for the current workflow.
      * If no value is available, then false is returned.
      *
-     * @param none
      * @return false if not available, bundle id value if available.
      */
     public function bundle()
@@ -234,8 +256,8 @@ class Workflows
      * Description:
      * Remove all items from an associative array that do not have a value
      *
-     * @param $a - Associative array
-     * @return bool
+     * @param string|null $a - Associative array
+     * @return boolean
      */
     private function emptyFilter($a)
     {
@@ -254,47 +276,47 @@ class Workflows
      * the label, the second parameter is the value, and the third parameter is
      * the plist file to save the data to.
      *
-     * @param $a - associative array of values to save
-     * @param $b - the value of the setting
-     * @param $c - the plist to save the values into
+     * @param array $a - associative array of values to save
+     * @param mixed $b - the value of the setting
+     * @param string $c - the plist to save the values into
      * @return string - execution output
      * @todo PSR2
      */
     public function set($a = null, $b = null, $c = null)
     {
-        if (is_array($a)):
-            if (file_exists($b)):
-                if (file_exists($this->path . '/' . $b)):
+        if (is_array($a)) {
+            if (file_exists($b)) {
+                if (file_exists($this->path . '/' . $b)) {
                     $b = $this->path . '/' . $b;
-                endif;
-            elseif (file_exists($this->data . "/" . $b)):
+                }
+            } elseif (file_exists($this->data . "/" . $b)) {
                 $b = $this->data . "/" . $b;
-            elseif (file_exists($this->cache . "/" . $b)):
+            } elseif (file_exists($this->cache . "/" . $b)) {
                 $b = $this->cache . "/" . $b;
-            else:
+            } else {
                 $b = $this->data . "/" . $b;
-            endif;
-        else:
-            if (file_exists($c)):
-                if (file_exists($this->path . '/' . $c)):
+            }
+        } else {
+            if (file_exists($c)) {
+                if (file_exists($this->path . '/' . $c)) {
                     $c = $this->path . '/' . $c;
-                endif;
-            elseif (file_exists($this->data . "/" . $c)):
+                }
+            } elseif (file_exists($this->data . "/" . $c)) {
                 $c = $this->data . "/" . $c;
-            elseif (file_exists($this->cache . "/" . $c)):
+            } elseif (file_exists($this->cache . "/" . $c)) {
                 $c = $this->cache . "/" . $c;
-            else:
+            } else {
                 $c = $this->data . "/" . $c;
-            endif;
-        endif;
+            }
+        }
 
-        if (is_array($a)):
-            foreach ($a as $k => $v):
+        if (is_array($a)) {
+            foreach ($a as $k => $v) {
                 exec('defaults write "' . $b . '" ' . $k . ' "' . $v . '"');
-            endforeach;
-        else:
+            }
+        } else {
             exec('defaults write "' . $c . '" ' . $a . ' "' . $b . '"');
-        endif;
+        }
     }
 
     /**
@@ -308,23 +330,23 @@ class Workflows
     public function get($a, $b)
     {
 
-        if (file_exists($b)):
-            if (file_exists($this->path . '/' . $b)):
+        if (file_exists($b)) {
+            if (file_exists($this->path . '/' . $b)) {
                 $b = $this->path . '/' . $b;
-            endif;
-        elseif (file_exists($this->data . "/" . $b)):
+            }
+        } elseif (file_exists($this->data . "/" . $b)) {
             $b = $this->data . "/" . $b;
-        elseif (file_exists($this->cache . "/" . $b)):
+        } elseif (file_exists($this->cache . "/" . $b)) {
             $b = $this->cache . "/" . $b;
-        else:
+        } else {
             return false;
-        endif;
+        }
 
         exec('defaults read "' . $b . '" ' . $a, $out);    // Execute system call to read plist value
 
-        if ($out == ""):
+        if ($out == "") {
             return false;
-        endif;
+        }
 
         $out = $out[0];
         return $out;                                            // Return item value
@@ -336,13 +358,13 @@ class Workflows
      *
      * @param $url - URL to request
      * @param $options - Array of curl options
-     * @return result from curl_exec
+     * @return string result from curl_exec
      */
     public function request($url = null, $options = null)
     {
-        if (is_null($url)):
+        if (is_null($url)) {
             return false;
-        endif;
+        }
 
         $defaults = array(                                    // Create a list of default curl options
             CURLOPT_RETURNTRANSFER => true,                    // Returns the result as a string
@@ -350,11 +372,11 @@ class Workflows
             CURLOPT_FRESH_CONNECT => true
         );
 
-        if ($options):
-            foreach ($options as $k => $v):
+        if ($options) {
+            foreach ($options as $k => $v) {
                 $defaults[$k] = $v;
-            endforeach;
-        endif;
+            }
+        }
 
         array_filter($defaults,                            // Filter out empty options from the array
             array($this, 'emptyFilter'));
@@ -365,18 +387,18 @@ class Workflows
         $err = curl_error($ch);
         curl_close($ch);                                    // End curl request
 
-        if ($err):
+        if ($err) {
             return $err;
-        else:
+        } else {
             return $out;
-        endif;
+        }
     }
 
     /**
      * Description:
      * Allows searching the local hard drive using mdfind
      *
-     * @param $query - search string
+     * @param string $query - search string
      * @return array - array of search results
      */
     public function mdfind($query)
@@ -391,62 +413,63 @@ class Workflows
      *
      * @param array - data to save to file
      * @param file - filename to write the cache data to
-     * @return none
+     * @return boolean
      */
     public function write($a, $b)
     {
-        if (file_exists($b)):
-            if (file_exists($this->path . '/' . $b)):
+        if (file_exists($b)) {
+            if (file_exists($this->path . '/' . $b)) {
                 $b = $this->path . '/' . $b;
-            endif;
-        elseif (file_exists($this->data . "/" . $b)):
+            }
+        } elseif (file_exists($this->data . "/" . $b)) {
             $b = $this->data . "/" . $b;
-        elseif (file_exists($this->cache . "/" . $b)):
+        } elseif (file_exists($this->cache . "/" . $b)) {
             $b = $this->cache . "/" . $b;
-        else:
+        } else {
             $b = $this->data . "/" . $b;
-        endif;
+        }
 
-        if (is_array($a)):
+        if (is_array($a)) {
             $a = json_encode($a);
             file_put_contents($b, $a);
             return true;
-        elseif (is_string($a)):
+        } elseif (is_string($a)) {
             file_put_contents($b, $a);
             return true;
-        else:
+        } else {
             return false;
-        endif;
+        }
     }
 
     /**
      * Description:
      * Returns data from a local cache file
      *
-     * @param file - filename to read the cache data from
+     * @param string $a filename to read the cache data from
+     * @param array|bool $array
      * @return false if the file cannot be found, the file data if found. If the file
      *            format is json encoded, then a json object is returned.
      */
     public function read($a, $array = false)
     {
-        if (file_exists($a)):
-            if (file_exists($this->path . '/' . $a)):
+        if (file_exists($a)) {
+            if (file_exists($this->path . '/' . $a)) {
                 $a = $this->path . '/' . $a;
-            endif;
-        elseif (file_exists($this->data . "/" . $a)):
+            }
+        } elseif (file_exists($this->data . "/" . $a)) {
             $a = $this->data . "/" . $a;
-        elseif (file_exists($this->cache . "/" . $a)):
+        } elseif (file_exists($this->cache . "/" . $a)) {
             $a = $this->cache . "/" . $a;
-        else:
+        } else {
             return false;
-        endif;
+        }
 
         $out = file_get_contents($a);
-        if (!is_null(json_decode($out)) && !$array):
+        if (!is_null(json_decode($out)) && !$array) {
             $out = json_decode($out);
-        elseif (!is_null(json_decode($out)) && !$array):
+        } elseif (!is_null(json_decode($out)) && !$array) {
             $out = json_decode($out, true);
-        endif;
+        }
 
         return $out;
     }
@@ -487,5 +510,4 @@ class Workflows
 
         return $temp;
     }
-
 }
