@@ -99,7 +99,6 @@ class Workflows
      * Accepts no parameter and returns the value of the path to the cache directory for your
      * workflow if it is available. Returns false if the value isn't available.
      *
-     * @param none
      * @return false if not available, path to the cache directory for your workflow if available.
      */
     public function cache()
@@ -120,7 +119,6 @@ class Workflows
      * Accepts no parameter and returns the value of the path to the storage directory for your
      * workflow if it is available. Returns false if the value isn't available.
      *
-     * @param none
      * @return false if not available, path to the storage directory for your workflow if available.
      */
     public function data()
@@ -158,7 +156,6 @@ class Workflows
      * Accepts no parameter and returns the value of the home path for the current user
      * Returns false if the value isn't available.
      *
-     * @param none
      * @return false if not available, home path for the current user if available.
      */
     public function home()
@@ -174,7 +171,6 @@ class Workflows
      * Description:
      * Returns an array of available result items
      *
-     * @param none
      * @return array - list of result items
      */
     public function results()
