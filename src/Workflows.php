@@ -289,7 +289,7 @@ class Workflows
      *
      * @param $propertyToRead - the value to read
      * @param $filename - plist to read the values from
-     * @return bool false if not found, string if found
+     * @return boolean|string false if not found, string if found
      * @todo simplify
      */
     public function get($propertyToRead, $filename)
@@ -325,6 +325,7 @@ class Workflows
      * @param array $options - Array of curl options
      * @return string result from curl_exec
      * @todo move request to a different class
+     * @deprecated Look into using Client class
      */
     public function request($url = null, array $options = null)
     {
