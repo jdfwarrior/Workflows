@@ -12,21 +12,24 @@ namespace AlfredApp;
  */
 class Workflows
 {
+    const PATH_CACHE = "/Library/Caches/com.runningwithcrayons.Alfred-2/Workflow Data/";
+    const PATH_DATA = "/Library/Application Support/Alfred 2/Workflow Data/";
+    const INFO_PLIST = "info.plist";
 
     /**
      * @var string
      */
-    private $cache;
+    private $cachePath;
 
     /**
      * @var string
      */
-    private $data;
+    private $dataPath;
 
     /**
-     * @var null|string
+     * @var string
      */
-    private $bundle;
+    private $bundleId;
 
     /**
      * @var string
@@ -53,27 +56,19 @@ class Workflows
      */
     public function __construct($bundleId = null)
     {
-        $this->path = exec('pwd');
-        $this->home = exec('printf "$HOME"');
+        $this->path = getcwd();
+        $this->home = $_SERVER['HOME'];
 
-        if (file_exists('info.plist')) {
-            $this->bundle = $this->get('bundleid', 'info.plist');
+        if (file_exists(self::INFO_PLIST)) {
+            $this->bundleId = $this->get('bundleid', self::INFO_PLIST);
         }
 
         if (!is_null($bundleId)) {
-            $this->bundle = $bundleId;
+            $this->bundleId = $bundleId;
         }
 
-        $this->cache = $this->home . "/Library/Caches/com.runningwithcrayons.Alfred-2/Workflow Data/" . $this->bundle;
-        $this->data = $this->home . "/Library/Application Support/Alfred 2/Workflow Data/" . $this->bundle;
-
-        if (!file_exists($this->cache)) {
-            exec("mkdir '" . $this->cache . "'");
-        };
-
-        if (!file_exists($this->data)) {
-            exec("mkdir '" . $this->data . "'");
-        };
+        $this->setupCachePath();
+        $this->setupDataPath();
 
         $this->results = array();
     }
@@ -83,15 +78,11 @@ class Workflows
      * Accepts no parameter and returns the value of the bundle id for the current workflow.
      * If no value is available, then false is returned.
      *
-     * @return false if not available, bundle id value if available.
+     * @return string|false if not available, bundle id value if available.
      */
     public function bundle()
     {
-        if (is_null($this->bundle)) {
-            return false;
-        } else {
-            return $this->bundle;
-        }
+        return (is_null($this->bundleId) ? false : $this->bundleId);
     }
 
     /**
@@ -99,19 +90,11 @@ class Workflows
      * Accepts no parameter and returns the value of the path to the cache directory for your
      * workflow if it is available. Returns false if the value isn't available.
      *
-     * @return false if not available, path to the cache directory for your workflow if available.
+     * @return string|false if not available, path to the cache directory for your workflow if available.
      */
     public function cache()
     {
-        if (is_null($this->bundle)) {
-            return false;
-        } else {
-            if (is_null($this->cache)) {
-                return false;
-            } else {
-                return $this->cache;
-            }
-        }
+        return $this->cachePath ?: false;
     }
 
     /**
@@ -119,19 +102,11 @@ class Workflows
      * Accepts no parameter and returns the value of the path to the storage directory for your
      * workflow if it is available. Returns false if the value isn't available.
      *
-     * @return false if not available, path to the storage directory for your workflow if available.
+     * @return string|false if not available, path to the storage directory for your workflow if available.
      */
     public function data()
     {
-        if (is_null($this->bundle)) {
-            return false;
-        } else {
-            if (is_null($this->data)) {
-                return false;
-            } else {
-                return $this->data;
-            }
-        }
+        return $this->dataPath ?: false;
     }
 
     /**
@@ -140,15 +115,11 @@ class Workflows
      * workflow if it is available. Returns false if the value isn't available.
      *
      * @param none
-     * @return false if not available, path to the current directory for your workflow if available.
+     * @return string|false if not available, path to the current directory for your workflow if available.
      */
     public function path()
     {
-        if (is_null($this->path)) {
-            return false;
-        } else {
-            return $this->path;
-        }
+        return $this->path ?: false;
     }
 
     /**
@@ -156,15 +127,11 @@ class Workflows
      * Accepts no parameter and returns the value of the home path for the current user
      * Returns false if the value isn't available.
      *
-     * @return false if not available, home path for the current user if available.
+     * @return string|false if not available, home path for the current user if available.
      */
     public function home()
     {
-        if (is_null($this->home)) {
-            return false;
-        } else {
-            return $this->home;
-        }
+        return $this->home ?: false;
     }
 
     /**
@@ -182,64 +149,66 @@ class Workflows
      * Description:
      * Convert an associative array into XML format
      *
-     * @param array $a - An associative array to convert
+     * @param array $results - An associative array to convert
      * @param string $format - format of data being passed (json or array), defaults to array
      * @return string - XML string representation of the array
      */
-    public function toXml(array $a = null, $format = 'array')
+    public function toXml($results = null, $format = 'array')
     {
-
         if ($format == 'json') {
-            $a = json_decode($a, true);
+            $results = json_decode($results, true);
         }
 
-        if (is_null($a) && !empty($this->results)) {
-            $a = $this->results;
-        } elseif (is_null($a) && empty($this->results)) {
+        if (is_null($results)) {
+            $results = $this->results;
+        }
+
+        if (empty($results)) {
             return false;
         }
 
         $items = new \SimpleXMLElement("<items></items>");    // Create new XML element
 
-        foreach ($a as $b) {                                // Lop through each object in the array
+        foreach ($results as $result) {                                // Loop through each object in the array
             $c = $items->addChild('item');                // Add a new 'item' element for each object
-            $c_keys = array_keys($b);                        // Grab all the keys for that item
+            $c_keys = array_keys($result);                        // Grab all the keys for that item
             foreach ($c_keys as $key) {                        // For each of those keys
+
                 if ($key == 'uid') {
-                    if ($b[$key] === null || $b[$key] === '') {
+                    if ($result[$key] === null || $result[$key] === '') {
                         continue;
                     } else {
-                        $c->addAttribute('uid', $b[$key]);
+                        $c->addAttribute('uid', $result[$key]);
                     }
                 } elseif ($key == 'arg') {
-                    $c->addAttribute('arg', $b[$key]);
-                    $c->$key = $b[$key];
+                    $c->addAttribute('arg', $result[$key]);
+                    $c->$key = $result[$key];
                 } elseif ($key == 'type') {
-                    $c->addAttribute('type', $b[$key]);
+                    $c->addAttribute('type', $result[$key]);
                 } elseif ($key == 'valid') {
-                    if ($b[$key] == 'yes' || $b[$key] == 'no') {
-                        $c->addAttribute('valid', $b[$key]);
+                    if ($result[$key] == 'yes' || $result[$key] == 'no') {
+                        $c->addAttribute('valid', $result[$key]);
                     }
                 } elseif ($key == 'autocomplete') {
-                    if ($b[$key] === null || $b[$key] === '') {
+                    if ($result[$key] === null || $result[$key] === '') {
                         continue;
                     } else {
-                        $c->addAttribute('autocomplete', $b[$key]);
+                        $c->addAttribute('autocomplete', $result[$key]);
                     }
                 } elseif ($key == 'icon') {
-                    if (substr($b[$key], 0, 9) == 'fileicon:') {
-                        $val = substr($b[$key], 9);
+                    if (substr($result[$key], 0, 9) == 'fileicon:') {
+                        $val = substr($result[$key], 9);
                         $c->$key = $val;
                         $c->$key->addAttribute('type', 'fileicon');
-                    } elseif (substr($b[$key], 0, 9) == 'filetype:') {
-                        $val = substr($b[$key], 9);
+                    } elseif (substr($result[$key], 0, 9) == 'filetype:') {
+                        $val = substr($result[$key], 9);
                         $c->$key = $val;
                         $c->$key->addAttribute('type', 'filetype');
                     } else {
-                        $c->$key = $b[$key];
+                        $c->$key = $result[$key];
                     }
                 } else {
-                    $c->$key = $b[$key];
+                    $c->$key = $result[$key];
                 }
             } // end foreach
         } // end foreach
@@ -284,24 +253,24 @@ class Workflows
                 if (file_exists($this->path . '/' . $b)) {
                     $b = $this->path . '/' . $b;
                 }
-            } elseif (file_exists($this->data . "/" . $b)) {
-                $b = $this->data . "/" . $b;
-            } elseif (file_exists($this->cache . "/" . $b)) {
-                $b = $this->cache . "/" . $b;
+            } elseif (file_exists($this->dataPath . "/" . $b)) {
+                $b = $this->dataPath . "/" . $b;
+            } elseif (file_exists($this->cachePath . "/" . $b)) {
+                $b = $this->cachePath . "/" . $b;
             } else {
-                $b = $this->data . "/" . $b;
+                $b = $this->dataPath . "/" . $b;
             }
         } else {
             if (file_exists($c)) {
                 if (file_exists($this->path . '/' . $c)) {
                     $c = $this->path . '/' . $c;
                 }
-            } elseif (file_exists($this->data . "/" . $c)) {
-                $c = $this->data . "/" . $c;
-            } elseif (file_exists($this->cache . "/" . $c)) {
-                $c = $this->cache . "/" . $c;
+            } elseif (file_exists($this->dataPath . "/" . $c)) {
+                $c = $this->dataPath . "/" . $c;
+            } elseif (file_exists($this->cachePath . "/" . $c)) {
+                $c = $this->cachePath . "/" . $c;
             } else {
-                $c = $this->data . "/" . $c;
+                $c = $this->dataPath . "/" . $c;
             }
         }
 
@@ -318,44 +287,46 @@ class Workflows
      * Description:
      * Read a value from the specified plist
      *
-     * @param $a - the value to read
-     * @param $b - plist to read the values from
+     * @param $propertyToRead - the value to read
+     * @param $filename - plist to read the values from
      * @return bool false if not found, string if found
+     * @todo simplify
      */
-    public function get($a, $b)
+    public function get($propertyToRead, $filename)
     {
-
-        if (file_exists($b)) {
-            if (file_exists($this->path . '/' . $b)) {
-                $b = $this->path . '/' . $b;
-            }
-        } elseif (file_exists($this->data . "/" . $b)) {
-            $b = $this->data . "/" . $b;
-        } elseif (file_exists($this->cache . "/" . $b)) {
-            $b = $this->cache . "/" . $b;
+        // This attempts to get the file in either the home, data or cache dir
+        if (file_exists($this->path . '/' . $filename)) {
+            $filename = $this->path . '/' . $filename;
+        } elseif (file_exists($this->dataPath . "/" . $filename)) {
+            $filename = $this->dataPath . "/" . $filename;
+        } elseif (file_exists($this->cachePath . "/" . $filename)) {
+            $filename = $this->cachePath . "/" . $filename;
         } else {
             return false;
         }
 
-        exec('defaults read "' . $b . '" ' . $a, $out);    // Execute system call to read plist value
+        // Execute system call to read plist value
+        $output = '';
+        exec("defaults read '${filename}' ${propertyToRead}", $output);
 
-        if ($out == "") {
+        // @todo change this into an exception
+        if (empty($output)) {
             return false;
         }
 
-        $out = $out[0];
-        return $out;                                            // Return item value
+        return $output[0];
     }
 
     /**
      * Description:
      * Read data from a remote file/url, essentially a shortcut for curl
      *
-     * @param $url - URL to request
-     * @param $options - Array of curl options
+     * @param string $url - URL to request
+     * @param array $options - Array of curl options
      * @return string result from curl_exec
+     * @todo move request to a different class
      */
-    public function request($url = null, $options = null)
+    public function request($url = null, array $options = null)
     {
         if (is_null($url)) {
             return false;
@@ -406,30 +377,30 @@ class Workflows
      * Description:
      * Accepts data and a string file name to store data to local file as cache
      *
-     * @param array - data to save to file
-     * @param file - filename to write the cache data to
+     * @param array $a - data to save to file
+     * @param string $filename - filename to write the cache data to
      * @return boolean
      */
-    public function write($a, $b)
+    public function write(array $a, $filename)
     {
-        if (file_exists($b)) {
-            if (file_exists($this->path . '/' . $b)) {
-                $b = $this->path . '/' . $b;
+        if (file_exists($filename)) {
+            if (file_exists($this->path . '/' . $filename)) {
+                $filename = $this->path . '/' . $filename;
             }
-        } elseif (file_exists($this->data . "/" . $b)) {
-            $b = $this->data . "/" . $b;
-        } elseif (file_exists($this->cache . "/" . $b)) {
-            $b = $this->cache . "/" . $b;
+        } elseif (file_exists($this->dataPath . "/" . $filename)) {
+            $filename = $this->dataPath . "/" . $filename;
+        } elseif (file_exists($this->cachePath . "/" . $filename)) {
+            $filename = $this->cachePath . "/" . $filename;
         } else {
-            $b = $this->data . "/" . $b;
+            $filename = $this->dataPath . "/" . $filename;
         }
 
         if (is_array($a)) {
             $a = json_encode($a);
-            file_put_contents($b, $a);
+            file_put_contents($filename, $a);
             return true;
         } elseif (is_string($a)) {
-            file_put_contents($b, $a);
+            file_put_contents($filename, $a);
             return true;
         } else {
             return false;
@@ -440,26 +411,26 @@ class Workflows
      * Description:
      * Returns data from a local cache file
      *
-     * @param string $a filename to read the cache data from
+     * @param string $filename filename to read the cache data from
      * @param array|bool $array
      * @return false if the file cannot be found, the file data if found. If the file
      *            format is json encoded, then a json object is returned.
      */
-    public function read($a, $array = false)
+    public function read($filename, $array = false)
     {
-        if (file_exists($a)) {
-            if (file_exists($this->path . '/' . $a)) {
-                $a = $this->path . '/' . $a;
+        if (file_exists($filename)) {
+            if (file_exists($this->path . '/' . $filename)) {
+                $filename = $this->path . '/' . $filename;
             }
-        } elseif (file_exists($this->data . "/" . $a)) {
-            $a = $this->data . "/" . $a;
-        } elseif (file_exists($this->cache . "/" . $a)) {
-            $a = $this->cache . "/" . $a;
+        } elseif (file_exists($this->dataPath . "/" . $filename)) {
+            $filename = $this->dataPath . "/" . $filename;
+        } elseif (file_exists($this->cachePath . "/" . $filename)) {
+            $filename = $this->cachePath . "/" . $filename;
         } else {
             return false;
         }
 
-        $out = file_get_contents($a);
+        $out = file_get_contents($filename);
         if (!is_null(json_decode($out)) && !$array) {
             $out = json_decode($out);
         } elseif (!is_null(json_decode($out)) && !$array) {
@@ -493,16 +464,43 @@ class Workflows
             'subtitle' => $sub,
             'icon' => $icon,
             'valid' => ($valid ? 'yes' : 'no'),
-            'autocomplete' => $auto,
-            'type' => $type
+            'autocomplete' => $auto
         );
 
-        if (is_null($type)) {
-            unset($temp['type']);
+        if (!is_null($type)) {
+            $temp['type'] = $type;
         };
 
         array_push($this->results, $temp);
 
         return $temp;
+    }
+
+    /**
+     * @return boolean
+     */
+    private function setupCachePath()
+    {
+        if ($this->bundleId) {
+            $this->cachePath = $this->home . self::PATH_CACHE . $this->bundleId;
+            if (!file_exists($this->cachePath)) {
+                return mkdir($this->cachePath);
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @return bool
+     */
+    private function setupDataPath()
+    {
+        if ($this->bundleId) {
+            $this->dataPath = $this->home . self::PATH_DATA . $this->bundleId;
+            if (!file_exists($this->dataPath)) {
+                return mkdir($this->dataPath);
+            }
+        }
+        return false;
     }
 }

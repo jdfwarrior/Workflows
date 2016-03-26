@@ -8,6 +8,23 @@ use AlfredApp\Workflows;
 
 class WorkflowsTest extends \PHPUnit_Framework_TestCase
 {
+    public function testConstruct_NoId()
+    {
+        $workflow = new Workflows();
+        $this->assertFalse($workflow->bundle());
+        $this->assertFalse($workflow->cache());
+        $this->assertFalse($workflow->data());
+    }
+
+    public function testConstruct_GetIdFromPlist()
+    {
+        // Copy the file to cwd because that's where the class looks for it
+        $this->copyPlistIntoCwd();
+
+        $workflow = new Workflows();
+        $this->assertSame('someBundleIdInXML', $workflow->bundle());
+    }
+
     public function testBundle_NoId_ReturnFalse()
     {
         $workflow = new Workflows();
@@ -52,6 +69,7 @@ class WorkflowsTest extends \PHPUnit_Framework_TestCase
     {
         $workflow = new Workflows();
         $this->assertNotNull($workflow->path());
+        $this->assertEquals(getcwd(), $workflow->path());
     }
 
     public function testHome()
@@ -71,10 +89,61 @@ class WorkflowsTest extends \PHPUnit_Framework_TestCase
         $this->markTestIncomplete("Very difficult to test in current state");
     }
 
-    public function testGet()
+    public function testGet_badPath_returnsFalse()
     {
-        $this->markTestIncomplete("Very difficult to test in current state");
+        $w = new Workflows();
+        $actual = $w->get('someProperty', 'foo');
+
+        $this->assertFalse($actual);
     }
 
+    public function testGet_GoodPathMissingProperty_returnsFalse()
+    {
+        $w = new Workflows();
+        $this->copyPlistIntoCwd();
+        $actual = $w->get('missingProperty', Workflows::INFO_PLIST);
 
+        $this->assertFalse($actual);
+    }
+
+    public function testGet_GoodPathWithProperty_returnsPropertyValue()
+    {
+        $w = new Workflows();
+        $this->copyPlistIntoCwd();
+        $actual = $w->get('myTestProperty', Workflows::INFO_PLIST);
+
+        $this->assertSame('testPropertyValue', $actual);
+    }
+
+    public function testGet()
+    {
+        $this->markTestIncomplete("Need to test the various path tries");
+    }
+
+    public function tearDown()
+    {
+        parent::tearDown();
+        if (file_exists($this->getInfoPlistPath())) {
+            unlink($this->getInfoPlistPath());
+        }
+    }
+
+    /**
+     * @return string
+     */
+    private function getInfoPlistPath()
+    {
+        return getcwd() . '/' . Workflows::INFO_PLIST;
+    }
+
+    /**
+     * @return void
+     */
+    private function copyPlistIntoCwd()
+    {
+        $plistFixtureFile = __DIR__.'/fixtures/'.Workflows::INFO_PLIST;
+        $this->assertTrue(file_exists($plistFixtureFile), "plist fixture is missing");
+
+        copy($plistFixtureFile, $this->getInfoPlistPath());
+    }
 }
