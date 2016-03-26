@@ -11,9 +11,13 @@ class Client
 
     /**
      * @param string $url
+     * @throws \Exception if curl is not installed
      */
     public function __construct($url)
     {
+        if (function_exists('curl_version')) {
+            throw new \Exception("You need to have curl installed for PHP");
+        }
         $this->setUrl($url);
     }
 
