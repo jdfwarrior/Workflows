@@ -1,3 +1,8 @@
+# v0.3
+
+* Added a simple curl client
+* Marked `request` as deprecated
+
 # v0.2
 
 * A lot of variable name changes to make for easy reading
