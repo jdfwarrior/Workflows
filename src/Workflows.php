@@ -276,7 +276,6 @@ class Workflows
      * @param mixed $b - the value of the setting
      * @param string $c - the plist to save the values into
      * @return string - execution output
-     * @todo PSR2
      */
     public function set($a = null, $b = null, $c = null)
     {

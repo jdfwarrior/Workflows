@@ -61,4 +61,20 @@ class WorkflowsTest extends \PHPUnit_Framework_TestCase
         $this->assertSame($_SERVER['HOME'], $workflow->home());
     }
 
+    public function testToXml()
+    {
+        $this->markTestIncomplete("Very difficult to test in current state");
+    }
+
+    public function testSet()
+    {
+        $this->markTestIncomplete("Very difficult to test in current state");
+    }
+
+    public function testGet()
+    {
+        $this->markTestIncomplete("Very difficult to test in current state");
+    }
+
+
 }
