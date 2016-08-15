@@ -5,4 +5,4 @@ documentation.
 
 ## To install
 
-    composer require catharsisjelly/workflows
+    composer require catharsisjelly/alfred-workflows
