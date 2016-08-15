@@ -7,13 +7,11 @@ namespace AlfredApp;
  * Description:    This PHP class object provides several useful functions for retrieving, parsing,
  *                and formatting data to be used with Alfred 2 Workflows.
  * Author:        David Ferguson (@jdfwarrior)
- * Revised:        6/6/2013
- * Version:        0.3.3
  */
 class Workflows
 {
-    const PATH_CACHE = "/Library/Caches/com.runningwithcrayons.Alfred-2/Workflow Data/";
-    const PATH_DATA = "/Library/Application Support/Alfred 2/Workflow Data/";
+    const PATH_CACHE = "/Library/Caches/com.runningwithcrayons.Alfred-%d/Workflow Data/";
+    const PATH_DATA = "/Library/Application Support/Alfred %d/Workflow Data/";
     const INFO_PLIST = "info.plist";
 
     /**
@@ -60,7 +58,7 @@ class Workflows
         $this->home = $_SERVER['HOME'];
 
         if (file_exists(self::INFO_PLIST)) {
-            $this->bundleId = $this->get('bundleid', self::INFO_PLIST);
+            $this->bundleId = $this->get(self::INFO_PLIST, 'bundleid');
         }
 
         if (!is_null($bundleId)) {
@@ -69,8 +67,6 @@ class Workflows
 
         $this->setupCachePath();
         $this->setupDataPath();
-
-        $this->results = array();
     }
 
     /**
@@ -219,67 +215,31 @@ class Workflows
 
     /**
      * Description:
-     * Remove all items from an associative array that do not have a value
-     *
-     * @param string|null $a - Associative array
-     * @return boolean
-     */
-    private function emptyFilter($a)
-    {
-        if ($a == '' || $a == null) {                        // if $a is empty or null
-            return false;                                    // return false, else, return true
-        } else {
-            return true;
-        }
-    }
-
-    /**
-     * Description:
      * Save values to a specified plist. If the first parameter is an associative
      * array, then the second parameter becomes the plist file to save to. If the
      * first parameter is string, then it is assumed that the first parameter is
      * the label, the second parameter is the value, and the third parameter is
      * the plist file to save the data to.
      *
-     * @param array $a - associative array of values to save
-     * @param mixed $b - the value of the setting
-     * @param string $c - the plist to save the values into
+     * @param array $filename - associative array of values to save
+     * @param string $key - the value of the setting
+     * @param mixed $value - the plist to save the values into
      * @return string - execution output
      */
-    public function set($a = null, $b = null, $c = null)
+    public function setFromValue($filename = null, $key = null, $value = null)
     {
-        if (is_array($a)) {
-            if (file_exists($b)) {
-                if (file_exists($this->path . '/' . $b)) {
-                    $b = $this->path . '/' . $b;
-                }
-            } elseif (file_exists($this->dataPath . "/" . $b)) {
-                $b = $this->dataPath . "/" . $b;
-            } elseif (file_exists($this->cachePath . "/" . $b)) {
-                $b = $this->cachePath . "/" . $b;
-            } else {
-                $b = $this->dataPath . "/" . $b;
-            }
-        } else {
-            if (file_exists($c)) {
-                if (file_exists($this->path . '/' . $c)) {
-                    $c = $this->path . '/' . $c;
-                }
-            } elseif (file_exists($this->dataPath . "/" . $c)) {
-                $c = $this->dataPath . "/" . $c;
-            } elseif (file_exists($this->cachePath . "/" . $c)) {
-                $c = $this->cachePath . "/" . $c;
-            } else {
-                $c = $this->dataPath . "/" . $c;
-            }
-        }
+        $fullPath = $this->determineFullPathFor($filename);
+        return $this->writeToPList($fullPath, $key, $value);
+    }
 
-        if (is_array($a)) {
-            foreach ($a as $k => $v) {
-                exec('defaults write "' . $b . '" ' . $k . ' "' . $v . '"');
-            }
-        } else {
-            exec('defaults write "' . $c . '" ' . $a . ' "' . $b . '"');
+    /**
+     * @param string $filename
+     * @param array $values
+     */
+    public function setFromArray($filename, array $values)
+    {
+        foreach ($values as $k => $v) {
+            $this->setFromValue($filename);
         }
     }
 
@@ -287,27 +247,18 @@ class Workflows
      * Description:
      * Read a value from the specified plist
      *
-     * @param $propertyToRead - the value to read
      * @param $filename - plist to read the values from
+     * @param $propertyToRead - the value to read
      * @return boolean|string false if not found, string if found
      * @todo simplify
      */
-    public function get($propertyToRead, $filename)
+    public function get($filename, $propertyToRead)
     {
-        // This attempts to get the file in either the home, data or cache dir
-        if (file_exists($this->path . '/' . $filename)) {
-            $filename = $this->path . '/' . $filename;
-        } elseif (file_exists($this->dataPath . "/" . $filename)) {
-            $filename = $this->dataPath . "/" . $filename;
-        } elseif (file_exists($this->cachePath . "/" . $filename)) {
-            $filename = $this->cachePath . "/" . $filename;
-        } else {
-            return false;
-        }
+        $fullPath = $this->determineFullPathFor($filename);
 
         // Execute system call to read plist value
-        $output = '';
-        exec("defaults read '${filename}' ${propertyToRead}", $output);
+        $output = [];
+        exec("defaults read '${fullPath}' ${propertyToRead}", $output);
 
         // @todo change this into an exception
         if (empty($output)) {
@@ -377,34 +328,19 @@ class Workflows
      * Description:
      * Accepts data and a string file name to store data to local file as cache
      *
-     * @param array $a - data to save to file
-     * @param string $filename - filename to write the cache data to
+     * @param string|array $filename - filename to write the cache data to
+     * @param array $data - data to save to file
      * @return boolean
      */
-    public function write(array $a, $filename)
+    public function write($filename, $data)
     {
-        if (file_exists($filename)) {
-            if (file_exists($this->path . '/' . $filename)) {
-                $filename = $this->path . '/' . $filename;
-            }
-        } elseif (file_exists($this->dataPath . "/" . $filename)) {
-            $filename = $this->dataPath . "/" . $filename;
-        } elseif (file_exists($this->cachePath . "/" . $filename)) {
-            $filename = $this->cachePath . "/" . $filename;
-        } else {
-            $filename = $this->dataPath . "/" . $filename;
+        $fullPath = $this->determineFullPathFor($filename);
+
+        if (is_array($data)) {
+            $data = json_encode($data);
         }
 
-        if (is_array($a)) {
-            $a = json_encode($a);
-            file_put_contents($filename, $a);
-            return true;
-        } elseif (is_string($a)) {
-            file_put_contents($filename, $a);
-            return true;
-        } else {
-            return false;
-        }
+        return file_put_contents($fullPath, $data);
     }
 
     /**
@@ -412,32 +348,21 @@ class Workflows
      * Returns data from a local cache file
      *
      * @param string $filename filename to read the cache data from
-     * @param array|bool $array
+     * @param boolean $returnAsObject
      * @return false if the file cannot be found, the file data if found. If the file
      *            format is json encoded, then a json object is returned.
      */
-    public function read($filename, $array = false)
+    public function read($filename, $returnAsObject = false)
     {
-        if (file_exists($filename)) {
-            if (file_exists($this->path . '/' . $filename)) {
-                $filename = $this->path . '/' . $filename;
-            }
-        } elseif (file_exists($this->dataPath . "/" . $filename)) {
-            $filename = $this->dataPath . "/" . $filename;
-        } elseif (file_exists($this->cachePath . "/" . $filename)) {
-            $filename = $this->cachePath . "/" . $filename;
+        $fullPath = $this->determineFullPathFor($filename);
+
+        $contents = file_get_contents($fullPath);
+        if ($contents) {
+            $decoded = json_decode($contents, $returnAsObject);
+            return is_null($decoded) ? false : $decoded;
         } else {
             return false;
         }
-
-        $out = file_get_contents($filename);
-        if (!is_null(json_decode($out)) && !$array) {
-            $out = json_decode($out);
-        } elseif (!is_null(json_decode($out)) && !$array) {
-            $out = json_decode($out, true);
-        }
-
-        return $out;
     }
 
     /**
@@ -477,12 +402,47 @@ class Workflows
     }
 
     /**
+     * @param string $filename
+     * @return string
+     * @throws \Exception
+     */
+    private function determineFullPathFor($filename)
+    {
+        if (file_exists($this->path . DIRECTORY_SEPARATOR . $filename)) {
+            return $this->path . DIRECTORY_SEPARATOR . $filename;
+        } elseif (file_exists($this->dataPath . DIRECTORY_SEPARATOR . $filename)) {
+            return $this->dataPath . DIRECTORY_SEPARATOR . $filename;
+        } elseif (file_exists($this->cachePath . DIRECTORY_SEPARATOR . $filename)) {
+            return $this->cachePath . DIRECTORY_SEPARATOR . $filename;
+        }
+
+        throw new \Exception(sprintf('Unable to determine fullPath for %s', $filename));
+    }
+
+    /**
+     * Description:
+     * Remove all items from an associative array that do not have a value
+     *
+     * @param string|null $a - Associative array
+     * @return boolean
+     */
+    private function emptyFilter($a)
+    {
+        if ($a == '' || $a == null) {                        // if $a is empty or null
+            return false;                                    // return false, else, return true
+        } else {
+            return true;
+        }
+    }
+
+    /**
      * @return boolean
      */
     private function setupCachePath()
     {
         if ($this->bundleId) {
-            $this->cachePath = $this->home . self::PATH_CACHE . $this->bundleId;
+            $version = $this->getAlfredVersion();
+            $this->cachePath = sprintf($this->home . self::PATH_CACHE . $this->bundleId, $version);
             if (!file_exists($this->cachePath)) {
                 return mkdir($this->cachePath);
             }
@@ -496,11 +456,37 @@ class Workflows
     private function setupDataPath()
     {
         if ($this->bundleId) {
-            $this->dataPath = $this->home . self::PATH_DATA . $this->bundleId;
+            $version = $this->getAlfredVersion();
+            $this->dataPath = sprintf($this->home . self::PATH_DATA . $this->bundleId, $version);
             if (!file_exists($this->dataPath)) {
                 return mkdir($this->dataPath);
             }
         }
         return false;
+    }
+
+    /**
+     * @return integer
+     * @throws \Exception
+     */
+    private function getAlfredVersion()
+    {
+        $applicationFolder = '/Applications';
+        if (file_exists($applicationFolder . '/Alfred 2.app')) {
+            return 2;
+        } elseif (file_exists($applicationFolder . '/Alfred 3.app')) {
+            return 3;
+        }
+        throw new \Exception("Unable to determine which Alfred version you are using");
+    }
+
+    /**
+     * @param $fullPath string
+     * @param $key string
+     * @param $value mixed
+     */
+    private function writeToPList($fullPath, $key, $value)
+    {
+        exec(sprintf('defaults write "%s" "%s" %s"', $fullPath, $key, $value));
     }
 }

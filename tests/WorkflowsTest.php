@@ -89,19 +89,20 @@ class WorkflowsTest extends \PHPUnit_Framework_TestCase
         $this->markTestIncomplete("Very difficult to test in current state");
     }
 
-    public function testGet_badPath_returnsFalse()
+    public function testGet_badPath_throwsException()
     {
         $w = new Workflows();
-        $actual = $w->get('someProperty', 'foo');
 
-        $this->assertFalse($actual);
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage("Unable to determine fullPath for someFileName");
+        $w->get('someFileName', 'someProperty');
     }
 
     public function testGet_GoodPathMissingProperty_returnsFalse()
     {
         $w = new Workflows();
         $this->copyPlistIntoCwd();
-        $actual = $w->get('missingProperty', Workflows::INFO_PLIST);
+        $actual = $w->get(Workflows::INFO_PLIST, 'missingProperty');
 
         $this->assertFalse($actual);
     }
@@ -110,7 +111,7 @@ class WorkflowsTest extends \PHPUnit_Framework_TestCase
     {
         $w = new Workflows();
         $this->copyPlistIntoCwd();
-        $actual = $w->get('myTestProperty', Workflows::INFO_PLIST);
+        $actual = $w->get(Workflows::INFO_PLIST, 'myTestProperty');
 
         $this->assertSame('testPropertyValue', $actual);
     }

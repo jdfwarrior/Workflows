@@ -1,3 +1,8 @@
+# v0.4
+
+* MAJOR re-work of the get, set, read & write functions. The changes break any previous usage of them, mostly by changing the parameters so that the file you want to read is the first parameter.
+* Added in some checks to see ifg you are using Alfred 2 or 3, it will take the first one it finds
+
 # v0.3
 
 * Added a simple curl client
