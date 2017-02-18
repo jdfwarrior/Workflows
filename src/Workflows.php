@@ -17,11 +17,6 @@ class Workflows
     /**
      * @var string
      */
-    private $cachePath;
-
-    /**
-     * @var string
-     */
     private $dataPath;
 
     /**
@@ -65,7 +60,7 @@ class Workflows
             $this->bundleId = $bundleId;
         }
 
-        $this->setupCachePath();
+        $cache = new Cache($this->bundleId, $this->getAlfredVersion());
         $this->setupDataPath();
     }
 
@@ -186,7 +181,7 @@ class Workflows
                         $c->addAttribute('valid', $result[$key]);
                     }
                 } elseif ($key == 'autocomplete') {
-                    if ($result[$key] === null || $result[$key] === '') {
+                    if ($result[$key] === null) {
                         continue;
                     } else {
                         $c->addAttribute('autocomplete', $result[$key]);
@@ -435,20 +430,7 @@ class Workflows
         }
     }
 
-    /**
-     * @return boolean
-     */
-    private function setupCachePath()
-    {
-        if ($this->bundleId) {
-            $version = $this->getAlfredVersion();
-            $this->cachePath = sprintf($this->home . self::PATH_CACHE . $this->bundleId, $version);
-            if (!file_exists($this->cachePath)) {
-                return mkdir($this->cachePath);
-            }
-        }
-        return false;
-    }
+
 
     /**
      * @return bool
