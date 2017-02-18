@@ -1,0 +1,24 @@
+{
+    "name": "catharsisjelly/alfred-workflows",
+    "description": "Workflow class for AlfredApp",
+    "authors": [
+        {
+            "name": "David Ferguson",
+            "email": "jdfwarrior@gmail.com"
+        },
+        {
+            "name": "Chris Lock",
+            "email": "code@catharsis.co.uk"
+        }
+    ],
+    "require": {},
+    "require-dev": {
+        "phpunit/phpunit": "^5.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "AlfredApp\\": "./src",
+            "AlfredAppTest\\": "./tests"
+        }
+    }
+}
