@@ -4,6 +4,7 @@ namespace AlfredAppTest;
 
 require_once 'vendor/autoload.php';
 
+use AlfredApp\FileStore;
 use AlfredApp\Workflows;
 
 class WorkflowsTest extends \PHPUnit_Framework_TestCase
@@ -12,8 +13,8 @@ class WorkflowsTest extends \PHPUnit_Framework_TestCase
     {
         $workflow = new Workflows();
         $this->assertFalse($workflow->bundle());
-        $this->assertFalse($workflow->cache());
-        $this->assertFalse($workflow->data());
+        $this->assertNull($workflow->cache());
+        $this->assertNull($workflow->data());
     }
 
     public function testConstruct_GetIdFromPlist()
@@ -37,46 +38,40 @@ class WorkflowsTest extends \PHPUnit_Framework_TestCase
         $this->assertSame(1234, $workflow->bundle());
     }
 
-    public function testCache_NoId_ReturnsFalse()
+    public function testCache_NoId_ReturnsNull()
     {
         $workflow = new Workflows();
-        $this->assertFalse($workflow->cache());
+        $this->assertNull($workflow->cache());
     }
 
     public function testCache_WithId_ReturnsPath()
     {
         $workflow = new Workflows(1234);
-        $cachePath = $workflow->cache();
-        $this->assertNotNull($cachePath);
-        $this->assertStringEndsWith((string) 1234, $cachePath);
+        $cacheStore = $workflow->cache();
+        $this->assertInstanceOf(FileStore::class, $cacheStore);
+        $this->assertStringEndsWith((string) 1234, $cacheStore->getPath());
     }
 
-    public function testData_NoId_ReturnsFalse()
+    public function testData_NoId_ReturnsNull()
     {
         $workflow = new Workflows();
-        $this->assertFalse($workflow->data());
+        $this->assertNull($workflow->data());
     }
 
     public function testData_WithId_ReturnsPath()
     {
         $workflow = new Workflows(1234);
-        $dataPath = $workflow->data();
-        $this->assertNotNull($dataPath);
-        $this->assertStringEndsWith((string) 1234, $dataPath);
+        $dataStore = $workflow->data();
+        $this->assertInstanceOf(FileStore::class, $dataStore);
+        $this->assertStringEndsWith((string) 1234, $dataStore->getPath());
     }
 
     public function testPath_ReturnsPwd()
     {
         $workflow = new Workflows();
         $this->assertNotNull($workflow->path());
-        $this->assertEquals(getcwd(), $workflow->path());
-    }
-
-    public function testHome()
-    {
-        $workflow = new Workflows();
-        $this->assertNotNull($workflow->home());
-        $this->assertSame($_SERVER['HOME'], $workflow->home());
+        $this->assertInstanceOf(FileStore::class, $workflow->path());
+        $this->assertEquals(getcwd(), $workflow->path()->getPath());
     }
 
     public function testToXml()

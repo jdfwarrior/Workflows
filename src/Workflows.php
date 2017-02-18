@@ -17,27 +17,27 @@ class Workflows
     /**
      * @var string
      */
-    private $dataPath;
-
-    /**
-     * @var string
-     */
     private $bundleId;
-
-    /**
-     * @var string
-     */
-    private $path;
-
-    /**
-     * @var string
-     */
-    private $home;
 
     /**
      * @var array
      */
     private $results = [];
+
+    /**
+     * @var FileStore
+     */
+    private $pathStore;
+
+    /**
+     * @var FileStore
+     */
+    private $cacheStore;
+
+    /**
+     * @var FileStore
+     */
+    private $dataStore;
 
     /**
      * Description:
@@ -49,9 +49,7 @@ class Workflows
      */
     public function __construct($bundleId = null)
     {
-        $this->path = getcwd();
-        $this->home = $_SERVER['HOME'];
-
+        $this->pathStore = new FileStore(getcwd());
         if (file_exists(self::INFO_PLIST)) {
             $this->bundleId = $this->get(self::INFO_PLIST, 'bundleid');
         }
@@ -60,15 +58,22 @@ class Workflows
             $this->bundleId = $bundleId;
         }
 
-        $cache = new Cache($this->bundleId, $this->getAlfredVersion());
-        $this->setupDataPath();
+        if ($this->bundleId) {
+            $version = $this->getAlfredVersion();
+            $this->cacheStore = new FileStore(sprintf(
+                $_SERVER['HOME'] . self::PATH_CACHE . $this->bundleId,
+                $version
+            ));
+
+            $this->dataStore = new FileStore(sprintf(
+                $_SERVER['HOME'] . self::PATH_DATA . $this->bundleId,
+                $version
+            ));
+        }
+
     }
 
     /**
-     * Description:
-     * Accepts no parameter and returns the value of the bundle id for the current workflow.
-     * If no value is available, then false is returned.
-     *
      * @return string|false if not available, bundle id value if available.
      */
     public function bundle()
@@ -77,58 +82,30 @@ class Workflows
     }
 
     /**
-     * Description:
-     * Accepts no parameter and returns the value of the path to the cache directory for your
-     * workflow if it is available. Returns false if the value isn't available.
-     *
-     * @return string|false if not available, path to the cache directory for your workflow if available.
+     * @return FileStore
      */
     public function cache()
     {
-        return $this->cachePath ?: false;
+        return $this->cacheStore;
     }
 
     /**
-     * Description:
-     * Accepts no parameter and returns the value of the path to the storage directory for your
-     * workflow if it is available. Returns false if the value isn't available.
-     *
-     * @return string|false if not available, path to the storage directory for your workflow if available.
+     * @return FileStore
      */
     public function data()
     {
-        return $this->dataPath ?: false;
+        return $this->dataStore;
     }
 
     /**
-     * Description:
-     * Accepts no parameter and returns the value of the path to the current directory for your
-     * workflow if it is available. Returns false if the value isn't available.
-     *
-     * @param none
-     * @return string|false if not available, path to the current directory for your workflow if available.
+     * @return FileStore
      */
     public function path()
     {
-        return $this->path ?: false;
+        return $this->pathStore;
     }
 
     /**
-     * Description:
-     * Accepts no parameter and returns the value of the home path for the current user
-     * Returns false if the value isn't available.
-     *
-     * @return string|false if not available, home path for the current user if available.
-     */
-    public function home()
-    {
-        return $this->home ?: false;
-    }
-
-    /**
-     * Description:
-     * Returns an array of available result items
-     *
      * @return array - list of result items
      */
     public function results()
@@ -321,47 +298,6 @@ class Workflows
 
     /**
      * Description:
-     * Accepts data and a string file name to store data to local file as cache
-     *
-     * @param string|array $filename - filename to write the cache data to
-     * @param array $data - data to save to file
-     * @return boolean
-     */
-    public function write($filename, $data)
-    {
-        $fullPath = $this->determineFullPathFor($filename);
-
-        if (is_array($data)) {
-            $data = json_encode($data);
-        }
-
-        return file_put_contents($fullPath, $data);
-    }
-
-    /**
-     * Description:
-     * Returns data from a local cache file
-     *
-     * @param string $filename filename to read the cache data from
-     * @param boolean $returnAsObject
-     * @return false if the file cannot be found, the file data if found. If the file
-     *            format is json encoded, then a json object is returned.
-     */
-    public function read($filename, $returnAsObject = false)
-    {
-        $fullPath = $this->determineFullPathFor($filename);
-
-        $contents = file_get_contents($fullPath);
-        if ($contents) {
-            $decoded = json_decode($contents, $returnAsObject);
-            return is_null($decoded) ? false : $decoded;
-        } else {
-            return false;
-        }
-    }
-
-    /**
-     * Description:
      * Helper function that just makes it easier to pass values into a function
      * and create an array result to be passed back to Alfred
      *
@@ -403,12 +339,12 @@ class Workflows
      */
     private function determineFullPathFor($filename)
     {
-        if (file_exists($this->path . DIRECTORY_SEPARATOR . $filename)) {
-            return $this->path . DIRECTORY_SEPARATOR . $filename;
-        } elseif (file_exists($this->dataPath . DIRECTORY_SEPARATOR . $filename)) {
-            return $this->dataPath . DIRECTORY_SEPARATOR . $filename;
-        } elseif (file_exists($this->cachePath . DIRECTORY_SEPARATOR . $filename)) {
-            return $this->cachePath . DIRECTORY_SEPARATOR . $filename;
+        if ($this->pathStore->exists($filename)) {
+            return $this->pathStore->getFullPath($filename);
+        } elseif ($this->dataStore instanceof FileStore && $this->dataStore->exists($filename)) {
+            return $this->dataStore->getFullPath($filename);
+        } elseif ($this->cacheStore instanceof FileStore && $this->cacheStore->exists($filename)) {
+            return $this->cacheStore->getFullPath($filename);
         }
 
         throw new \Exception(sprintf('Unable to determine fullPath for %s', $filename));
@@ -428,23 +364,6 @@ class Workflows
         } else {
             return true;
         }
-    }
-
-
-
-    /**
-     * @return bool
-     */
-    private function setupDataPath()
-    {
-        if ($this->bundleId) {
-            $version = $this->getAlfredVersion();
-            $this->dataPath = sprintf($this->home . self::PATH_DATA . $this->bundleId, $version);
-            if (!file_exists($this->dataPath)) {
-                return mkdir($this->dataPath);
-            }
-        }
-        return false;
     }
 
     /**
